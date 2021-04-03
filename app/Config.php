@@ -1,11 +1,17 @@
 <?php
 
+use Dotenv\Dotenv;
+
+$env = Dotenv::createImmutable(dirname(__DIR__, 1));
+$env->load();
+
+
 define("SITE", [
-    "root" => "http://localhost/SGFA_AGUASAZ",
+    "root" => "http://sys.sgfa.local",
     "description" => "Sistema de Gestão de Furos de Água",
     "locale" => "pt_PT",
     "datetime" => "Africa/Maputo",
-    "version" => "1.1"
+    "version" => "1.2"
 ]);
 
 define("BUSINESS_MODEL", [
@@ -25,11 +31,11 @@ define("BUSINESS_MODEL", [
 
 define("DB_CONFIG", [
     "driver" => "mysql",
-    "host" => "localhost",
-    "port" => "3306",
-    "dbname" => "sgfa",
-    "username" => "root",
-    "passwd" => "",
+    "host" => $_ENV["DB_HOST"],
+    "port" => $_ENV["DB_PORT"],
+    "dbname" => $_ENV["DB_NAME"],
+    "username" => $_ENV["DB_USER"],
+    "passwd" => $_ENV["DB_PASS"],
     "options" => [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,

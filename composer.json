@@ -21,11 +21,13 @@
         "phpmailer/phpmailer": "^6.1",
         "ext-gd": "*",
         "messente/messente-api-php": "^1.4",
-        "alexcrisbrito/php-crud": "^1.0"
+        "alexcrisbrito/php-crud": "^1.0",
+        "vlucas/phpdotenv": "^5.3"
     },
     "autoload": {
         "psr-4": {
-            "App\\": "app/"
+            "App\\": "app/",
+            "App\\Installer\\": "install/app"
         },
         "files": [
             "app/Helpers.php",

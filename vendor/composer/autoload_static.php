@@ -14,6 +14,9 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         'a0edc8309cc5e1d60e3047b5df6b7052' => __DIR__ . '/..' . '/guzzlehttp/psr7/src/functions_include.php',
         'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
+        '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
+        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
+        'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         'af534c9f319233e42b53973a8392685b' => __DIR__ . '/../..' . '/app/Helpers.php',
         'bef6d6a5b489730a2a852f3e6e2a1a39' => __DIR__ . '/../..' . '/app/Config.php',
     );
@@ -21,14 +24,18 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
     public static $prefixLengthsPsr4 = array (
         'S' => 
         array (
+            'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Polyfill\\Php72\\' => 23,
+            'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Intl\\Normalizer\\' => 33,
             'Symfony\\Polyfill\\Intl\\Idn\\' => 26,
+            'Symfony\\Polyfill\\Ctype\\' => 23,
             'Svg\\' => 4,
         ),
         'P' => 
         array (
             'Psr\\Http\\Message\\' => 17,
+            'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' => 
@@ -44,6 +51,7 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
             'GuzzleHttp\\Psr7\\' => 16,
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
+            'GrahamCampbell\\ResultType\\' => 26,
         ),
         'F' => 
         array (
@@ -51,6 +59,7 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         ),
         'D' => 
         array (
+            'Dotenv\\' => 7,
             'Dompdf\\' => 7,
         ),
         'C' => 
@@ -59,15 +68,24 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         ),
         'A' => 
         array (
+            'App\\Installer\\' => 14,
             'App\\' => 4,
             'Alexcrisbrito\\Php_crud\\' => 23,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
+        'Symfony\\Polyfill\\Php80\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
+        ),
         'Symfony\\Polyfill\\Php72\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php72',
+        ),
+        'Symfony\\Polyfill\\Mbstring\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
         ),
         'Symfony\\Polyfill\\Intl\\Normalizer\\' => 
         array (
@@ -77,6 +95,10 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-intl-idn',
         ),
+        'Symfony\\Polyfill\\Ctype\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
+        ),
         'Svg\\' => 
         array (
             0 => __DIR__ . '/..' . '/phenx/php-svg-lib/src/Svg',
@@ -84,6 +106,10 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         'Psr\\Http\\Message\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-message/src',
+        ),
+        'PhpOption\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
         'PHPMailer\\PHPMailer\\' => 
         array (
@@ -109,9 +135,17 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
+        'GrahamCampbell\\ResultType\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
+        ),
         'FontLib\\' => 
         array (
             0 => __DIR__ . '/..' . '/phenx/php-font-lib/src/FontLib',
+        ),
+        'Dotenv\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
         ),
         'Dompdf\\' => 
         array (
@@ -120,6 +154,10 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         'CoffeeCode\\Router\\' => 
         array (
             0 => __DIR__ . '/..' . '/coffeecode/router/src',
+        ),
+        'App\\Installer\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/install/app',
         ),
         'App\\' => 
         array (
@@ -142,6 +180,7 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
     );
 
     public static $classMap = array (
+        'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Dompdf\\Cpdf' => __DIR__ . '/..' . '/dompdf/dompdf/lib/Cpdf.php',
         'HTML5_Data' => __DIR__ . '/..' . '/dompdf/dompdf/lib/html5lib/Data.php',
@@ -150,6 +189,9 @@ class ComposerStaticInit41228b7ea3790a054506f08d95aa96f0
         'HTML5_Tokenizer' => __DIR__ . '/..' . '/dompdf/dompdf/lib/html5lib/Tokenizer.php',
         'HTML5_TreeBuilder' => __DIR__ . '/..' . '/dompdf/dompdf/lib/html5lib/TreeBuilder.php',
         'Normalizer' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
+        'Stringable' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
+        'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
+        'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

@@ -1,80 +1,92 @@
 <?php
+
+/* Let's check if the system is already installed */
+if (file_exists("./install/")) {
+    header("Location: /install");
+    exit;
+}
+
 ob_start();
 session_start();
 
-require "./vendor/autoload.php";
+require './vendor/autoload.php';
 
 use CoffeeCode\Router\Router;
 
 $router = new Router(site());
-$router->namespace("App\Controllers");
+
+$router->namespace("App\Controllers\Pages");
 
 /* Authentication Routes */
-$router->get("/","Pages\Nav:login","pub.login");
-$router->post("/login","Forms\Auth:login","auth.login");
-$router->get("/nova-senha","Pages\Nav:change","pub.change");
-$router->post("/change","Forms\Auth:change_pwd","auth.change");
-$router->get("/access","Pages\Auth:home","home");
-$router->get("/sair","Forms\Auth:logout","auth.logout");
+$router->get("/","Pub:login","pub.login");
+$router->get("/access","Auth:home","home");
+$router->get("/sair","Auth:logout","auth.logout");
+$router->get("/nova-senha","Pub:change","pub.change");
 
 /* Administration pages */
 $router->group("admin");
-$router->get("/home","Pages\Admin:home","admin.home");
-$router->get("/faturas","Pages\Admin:invoices","admin.facturas");
-$router->get("/recibos","Pages\Admin:receipts","admin.recibos");
-$router->get("/mensagens","Pages\Admin:messages","admin.mensagens");
-$router->get("/configurar","Pages\Admin:colab","admin.colab");
-$router->get("/financeiro","Pages\Admin:financial","admin.financeiro");
-$router->get("/clientes","Pages\Admin:clients","admin.clientes");
+$router->get("/home","Admin:home","admin.home");
+$router->get("/faturas","Admin:invoices","admin.facturas");
+$router->get("/recibos","Admin:receipts","admin.recibos");
+$router->get("/mensagens","Admin:messages","admin.mensagens");
+$router->get("/configurar","Admin:colab","admin.colab");
+$router->get("/financeiro","Admin:financial","admin.financeiro");
+$router->get("/clientes","Admin:clients","admin.clientes");
 
 /* Worker Pages */
 $router->group("func");
-$router->get("/home","Pages\Worker:index","worker.home");
-$router->get("/faturas","Pages\Worker:invoices","worker.facturas");
-$router->get("/recibos","Pages\Worker:receipts","worker.recibos");
-$router->get("/mensagens","Pages\Worker:messages","worker.mensagens");
-$router->get("/clientes","Pages\Worker:clients","worker.clientes");
+$router->get("/home","Worker:index","worker.home");
+$router->get("/faturas","Worker:invoices","worker.facturas");
+$router->get("/recibos","Worker:receipts","worker.recibos");
+$router->get("/mensagens","Worker:messages","worker.mensagens");
+$router->get("/clientes","Worker:clients","worker.clientes");
 
 /* Users */
 $router->group(null);
-$router->get("/home","Pages\Nav:home","user.home");
-$router->get("/faturas","Pages\Nav:invoices","user.facturas");
-$router->get("/recibos","Pages\Nav:receipts","user.recibos");
+$router->get("/home","Nav:home","user.home");
+$router->get("/faturas","Nav:invoices","user.facturas");
+$router->get("/recibos","Nav:receipts","user.recibos");
 
+
+$router->namespace("App\Controllers\Forms");
 /* Invoice */
-$router->post("/facturas/emitir","Forms\Invoices:add","admin.facturas.emitir");
-$router->post("/facturas/editar/{id}","Forms\Invoices:edit","admin.facturas.editar");
-$router->post("/facturas/divida","Forms\Invoices:debt","admin.facturas.divida");
-$router->post("/facturas/apagar","Forms\Invoices:delete","admin.facturas.apagar");
-$router->post("/facturas/cancelar","Forms\Invoices:cancel","admin.facturas.cancelar");
-$router->get("/facturas/visualizar/{id}","Forms\Invoices:visualize","admin.facturas.visualizar");
-$router->get("/facturas/imprimir/{id}","Forms\Invoices:print","admin.facturas.imprimir");
+$router->post("/facturas/emitir","Invoices:add","admin.facturas.emitir");
+$router->post("/facturas/editar/{id}","Invoices:edit","admin.facturas.editar");
+$router->post("/facturas/divida","Invoices:debt","admin.facturas.divida");
+$router->post("/facturas/apagar","Invoices:delete","admin.facturas.apagar");
+$router->post("/facturas/cancelar","Invoices:cancel","admin.facturas.cancelar");
+$router->get("/facturas/visualizar/{id}","Invoices:visualize","admin.facturas.visualizar");
+$router->get("/facturas/imprimir/{id}","Invoices:print","admin.facturas.imprimir");
 
 /* Expenses */
-$router->post("/despesas/registrar","Forms\Financial:expense_add","admin.financeiro.despesas.emitir");
-$router->post("/despesas/apagar","Forms\Financial:expense_delete","admin.financeiro.despesas.apagar");
+$router->post("/despesas/registrar","Financial:expense_add","admin.financeiro.despesas.emitir");
+$router->post("/despesas/apagar","Financial:expense_delete","admin.financeiro.despesas.apagar");
 
 /* Receipt */
-$router->get("/recibos/visualizar/{id}","Forms\Receipts:visualize","admin.recibos.visualizar");
-$router->get("/recibos/imprimir/{id}","Forms\Receipts:print","admin.recibos.imprimir");
-$router->post("/recibos/emitir","Forms\Receipts:add","admin.recibos.emitir");
+$router->get("/recibos/visualizar/{id}","Receipts:visualize","admin.recibos.visualizar");
+$router->get("/recibos/imprimir/{id}","Receipts:print","admin.recibos.imprimir");
+$router->post("/recibos/emitir","Receipts:add","admin.recibos.emitir");
 
 /* Client */
-$router->post("/clientes/cadastrar","Forms\Clients:add","admin.clientes.cadastrar");
-$router->get("/clientes/editar/{id}","Forms\Clients:get","admin.clientes.editar");
-$router->post("/clientes/atualizar","Forms\Clients:update","admin.clientes.atualizar");
-$router->post("/clientes/estado","Forms\Clients:status","admin.clientes.estado");
+$router->post("/clientes/cadastrar","Clients:add","admin.clientes.cadastrar");
+$router->get("/clientes/editar/{id}","Clients:get","admin.clientes.editar");
+$router->post("/clientes/atualizar","Clients:update","admin.clientes.atualizar");
+$router->post("/clientes/estado","Clients:status","admin.clientes.estado");
 
-/* SMS */
-$router->post("/messages/send","Messages:send","admin.messages.send");
+/* Authentication */
+$router->post("/login","Auth:login","auth.login");
+$router->post("/change","Auth:change_pwd","auth.change");
+
+///* SMS */
+//$router->post("/messages/send","Messages:send","admin.messages.send");
 
 
 /* Routes dispatch */
 $router->dispatch();
 
 /* In case of error, redirect to home */
-if($router->error()){
-    $router->redirect("home");
-}
+//if($router->error()){
+//    $router->redirect("home");
+//}
 
 ob_end_flush();

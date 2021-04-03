@@ -3,7 +3,7 @@
 
 namespace App\Models;
 
-use alexcrisbrito\php_crud\Crud;
+use Alexcrisbrito\Php_crud\Crud;
 
 class Login extends Crud
 {
