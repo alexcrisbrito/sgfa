@@ -4,15 +4,17 @@
 namespace App\Controllers\Forms;
 
 
-use App\Helpers\PrintPdf;
+use App\Helpers\AdminSession;
+use App\Contracts\PrintPdf;
 use App\Helpers\UserSession;
+use App\Helpers\WorkerSession;
+use App\Models\Accounts;
+use App\Models\Config;
 use App\Models\Invoice;
 use App\Controllers\BaseController;
 use App\Models\Receipt as ReceiptsModel;
 use App\Models\Client;
-use Dompdf\Dompdf;
-use Dompdf\Options;
-use App\Helpers\Messages;
+use App\Contracts\Messages;
 
 class Receipts extends BaseController
 {
@@ -23,95 +25,115 @@ class Receipts extends BaseController
 
     public function add($data): void
     {
-        $invoice_id = filter_var($data["invoice_id"], FILTER_SANITIZE_STRING);
+        $invoice_id = filter_var($data["invoice_id"], FILTER_VALIDATE_INT);
         $amount = filter_var($data["amount"], FILTER_VALIDATE_FLOAT);
-        $paid_via = filter_var($data["paid_via"], FILTER_SANITIZE_STRING);
+        $paid_via = filter_var($data["paid_via"], FILTER_VALIDATE_INT);
 
-        if (!$invoice_id or !$amount or !$paid_via) {
-            echo ajax("msg", ["type" => "alert-warning", "msg" => "Por favor, preencha todos os campos corretamente !"]);
+        if (!$invoice_id || !$amount || !$paid_via) {
+            $this->jsonResult(false, "Preencha todos os campos correctamente !");
             return;
         }
 
-        $invoicesModel = new Invoice();
-        $invoice = $invoicesModel->find()->where("id = '{$invoice_id}'")->execute();
+        $invoice = (new Invoice())->find()->where("id = '$invoice_id'")->execute();
 
         if (!$invoice) {
-            echo ajax("msg", ["type" => "alert-danger", "msg" => "A fatura referente a este recibo não existe, tente novamente !"]);
+            $this->jsonResult(false, "A factura referente a este recibo não existe, tente novamente !");
             return;
         }
 
-        if ($invoice->status == 2 || $invoice->status == 3 || $invoice->debt == 0 or $amount > $invoice->debt) {
-            echo ajax("msg", ["type" => "alert-danger", "msg" => "A fatura para qual tentou emitir o recibo está PAGA, CANCELADA ou o VALOR em dívida é menor que o valor inserido"]);
+        if ($invoice->status == 2 || $invoice->status == 3 || $invoice->debt == 0 || $amount > $invoice->debt) {
+            $this->jsonResult(false,
+                "A factura para qual tentou emitir o recibo está PAGA, CANCELADA ou, o VALOR em dívida é menor que o valor pago");
             return;
         }
 
-        $saved = (new ReceiptsModel())->save(["invoice_id" => $invoice_id, "amount" => $amount, "paid_via" => $paid_via])
-            ->execute();
+        $save = (new ReceiptsModel())->save([
+            "client_id" => $invoice->client_id,
+            "invoice_id" => $invoice->id,
+            "amount" => $amount,
+            "paid_via" => $paid_via,
+            "processed_by" => WorkerSession::has() ? WorkerSession::get()['id'] : AdminSession::get()['id'] ?? 0
+        ])->execute();
 
-        if ($saved) {
+        if ($save) {
 
             $debt = $invoice->debt - $amount;
 
-            if ($debt == 0) {
-                $invoicesModel->update(["debt" => $debt, "status" => 2])->where("id = '{$invoice_id}'")->execute();
-            } else {
-                $invoicesModel->update(["debt" => $debt])->where("id = '{$invoice_id}'")->execute();
+            (new Invoice())->update(["debt" => $debt, "status" => $debt <= 0 ? 2 : 1])
+                ->where("id = '$invoice->id'")->execute();
+
+            $account = (new Accounts())->find()->where("id = '".$paid_via."'")->execute();
+
+            (new Accounts())->update(["balance" => ((float)$account->balance + $amount)])
+                ->where("id = '".$account->id."'")->execute();
+
+            if (isset($_SESSION['accounts']))
+                $_SESSION['accounts'][$paid_via - 1]['balance'] += $amount;
+
+            if (isset($_SESSION['config']) && $_SESSION['config']['auto_sms'] == 1) {
+                $receipt = (new ReceiptsModel())->find()->where("invoice_id = '$invoice_id'")->execute();
+                $client = (new Client())->find()->where("id = '$invoice->client_id'")->execute();
+
+                if (Messages::receipt($receipt, $client)) {
+                    $this->jsonResult(true,
+                        "O recibo no valor de $amount MT para a factura $invoice->id foi emitido com sucesso");
+                    return;
+                }
             }
 
-            $recibo = (new ReceiptsModel())->find()->where("invoice_id = '{$invoice_id}'")->execute();
-            $cliente = (new Client())->find()->where("id = '{$invoice->Cliente}'")->execute();
-
-            $com = Messages::receipt($recibo, $cliente);
-
-            if ($com) {
-                echo ajax("msg", ["type" => "alert-success", "msg" => "O recibo para o cliente foi emitido com sucesso e a SMS de aviso foi enviada !"]);
-                return;
-            }
-
-            echo ajax("msg", ["type" => "alert-warning", "msg" => "O recibo para o cliente foi emitido com sucesso e a SMS de aviso não foi enviada !"]);
+            $this->jsonResult(true,
+                "O recibo no valor de $amount MT para a factura $invoice->id foi emitido com sucesso");
             return;
         }
 
-        echo ajax("msg", ["type" => "alert-danger", "msg" => "Erro de sistema, tente novamente !"]);
+        echo ajax("msg", ["type" => "alert-danger", "msg" => "Erro ao processar, tente novamente !"]);
     }
 
-    /* (!) NOT USED METHOD */
-    public function lerRecibo($data): void
+    public function visualize($data): void
     {
-        if ($data["receipt_id"]) {
+        $receipt_id = $data["id"];
+        $receipt = (new ReceiptsModel())->find()->where("id = '$receipt_id'")->execute();
 
-            $receipt_id = filter_var($data["receipt_id"], FILTER_VALIDATE_INT);
 
-            $receipt = (new ReceiptsModel())->find()->where("id = '{$receipt_id}'");
+        if ($receipt && AdminSession::has() || WorkerSession::has() || (UserSession::has() && UserSession::get()["id"] == $client->id)) {
 
-            if ($receipt) {
-                echo ajax("data", ["dados" => $receipt]);
-                return;
-            }
+            $invoice = (new Invoice())->find()->where("id = '$receipt->invoice_id'")->execute();
+            $client = (new Client())->find()->where("id = '$invoice->client_id'")->execute();
+            $config = (new Config())->find()->execute();
 
-        }
+            $receipt->paid_via = explode(";", $config->payment_methods)[$receipt->paid_via - 1];
 
-        echo ajax("msg", ["type" => "alert-warning", "msg" => "[!] Sem registo do recibo indicado."]);
-    }
-
-    public function visualizeReceipt($data): void
-    {
-        $receipt_id = $data["receipt_id"];
-
-        $receipt = (new ReceiptsModel())->find()->where("id = '{$receipt_id}'")->execute();
-        $invoice = (new Invoice())->find()->where("id = '{$receipt->invoice_id}'")->execute();
-        $client = (new Client())->find()->where("id = '{$invoice->client_id}'")->execute();
-
-        if ($invoice && $_SESSION["ID"] == 0 or $_SESSION["ID"] == $invoice->client_id) {
-            echo $this->view->render("docs::recibo", [
+            echo $this->view->render("docs::receipt", [
                 "receipt" => $receipt,
+                "invoice" => $invoice,
                 "client" => $client
             ]);
 
             return;
         }
 
-        echo ajax("msg", ["type" => "alert-danger", "msg" => "[!] A fatura informada não existe, tente novamente."]);
+        $this->router->redirect("home");
+    }
+
+    public function print($data)
+    {
+        $receipt_id = $data["id"];
+        $receipt = (new ReceiptsModel())->find()->where("id = '$receipt_id'")->execute();
+
+        if ($receipt && ((AdminSession::has() || WorkerSession::has()) ||
+            (UserSession::has() && UserSession::get()["id"] == $receipt->client_id))) {
+
+            $invoice = (new Invoice())->find()->where("id = '$receipt->invoice_id'")->execute();
+            $client = (new Client())->find()->where("id = '$invoice->client_id'")->execute();
+            $config = (new Accounts())->find()->execute(null, true);
+            $receipt->paid_via = $config[$receipt->paid_via - 1]->name;
+
+            PrintPdf::receipt($receipt, $client, $invoice);
+
+            return;
+        }
+
+        $this->router->redirect("home");
     }
 
     public function update($data): void
@@ -121,7 +143,7 @@ class Receipts extends BaseController
         $value = filter_var($data["value"], FILTER_SANITIZE_STRIPPED);
 
         if (!$receipt_id or !$prop or !$value) {
-            echo ajax("msg", ["type" => "danger", "msg" => "[!] Por favor, preencha os campos corretamente."]);
+            echo ajax("msg", ["type" => "danger", "msg" => "Por favor, preencha os campos corretamente."]);
             return;
         }
 
@@ -132,7 +154,7 @@ class Receipts extends BaseController
             return;
         }
 
-        echo ajax("msg", ["type" => "warning", "msg" => "[!] Não existe registo do recibo selecionado."]);
+        echo ajax("msg", ["type" => "warning", "msg" => "Não existe registo do recibo selecionado."]);
     }
 
     public function delete($data): void
@@ -146,22 +168,7 @@ class Receipts extends BaseController
             return;
         }
 
-        echo ajax("msg", ["type" => "warning", "msg" => "[!] Não existe registo do recibo selecionado."]);
+        echo ajax("msg", ["type" => "warning", "msg" => "Não existe registo do recibo selecionado."]);
     }
 
-    public function print($data)
-    {
-        $receipt_id = $data["receipt_id"];
-
-        $receipt = (new ReceiptsModel())->find()->where("id = '{$receipt_id}'")->execute();
-        $invoice = (new Invoice())->find()->where("id = '{$receipt->invoice_id}'")->execute();
-        $client = (new Client())->find()->where("id = '{$invoice->client_id}'")->execute();
-
-        if ($receipt && UserSession::get()['id'] == 0 || UserSession::get()["id"] == $client->id) {
-            PrintPdf::receipt($receipt, $client);
-            exit;
-        }
-
-        $this->router->redirect("home");
-    }
 }

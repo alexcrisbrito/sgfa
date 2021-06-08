@@ -1,49 +1,57 @@
 <?php $this->layout("admin::_template_") ?>
-<!-- Page Heading -->
-<h1 class="h3 mb-2 text-gray-800">Facturas</h1>
-<p class="mb-4">Abaixo sita uma tabela com as facturas emitidas, começando pelas recentes e também poderá tomar accões
-    por cada uma delas ou personalizar a forma de apresentação
-    através das opções abaixo</p>
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-2 font-weight-bold text-gray-800">
+            <i class="fa fa-file-invoice"></i> Facturas
+        </h1>
+        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-dark shadow-sm">
+            <i class="fas fa-file-invoice-dollar"></i> <i class="fas fa-arrow-to-bottom"></i> Lista de facturas
+        </a>
+    </div>
+    <p class="mb-4 text-dark">Abaixo sita uma tabela com as facturas emitidas, começando pelas mais recentes e também
+        poderá tomar accões por cada uma delas ou personalizar a forma de apresentação através das opções abaixo</p>
 
-<!-- DataTales Example -->
-<div class="card shadow mb-4">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                <thead>
-                <tr>
-                    <th>Número</th>
-                    <th>Data</th>
-                    <th>Cliente</th>
-                    <th>Leitura</th>
-                    <th>Valor</th>
-                    <th>Em Dívida</th>
-                    <th>Estado</th>
-                    <th>Acções</th>
-                </tr>
-                </thead>
-                <tbody>
-                <?php
-                    foreach ($dados as $factura) :
-                        echo "<tr id='{$factura->ID}'>";
-                        echo "<td>{$factura->ID}</td>";
-                        echo "<td>{$factura->Date}</td>";
-                        echo "<td>{$factura->Nome}</td>";
-                        echo "<td>{$factura->Consumo} m3</td>";
-                        echo "<td>{$factura->Valor} MT</td>";
-                        echo "<td>{$factura->Divida} MT</td>";
-                        //LIMITACAO DE ACCOES CONSOANTE AO ESTADO DA FACTURA
-                        switch ($factura->Estado) :
+    <!-- DataTales Example -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Contador</th>
+                        <th>Consumo</th>
+                        <th>Valor</th>
+                        <th>Em Dívida</th>
+                        <th>Multa</th>
+                        <th>Estado</th>
+                        <th>Acções</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    foreach ($data as $invoice) :
+                        echo "<tr id='inv{$invoice['id']}'>";
+                        echo "<td>{$invoice['id']}</td>";
+                        echo "<td>{$invoice['date_added']}</td>";
+                        echo "<td>{$invoice['client']['id']} - {$invoice['client']['name']}</td>";
+                        echo "<td>{$invoice['counter']} m3</td>";
+                        echo "<td>" . number_format($invoice['consumption'], 2, ",", ".") . " m3</td>";
+                        echo "<td>" . number_format($invoice['amount'], 2, ",", ".") . " MZN</td>";
+                        echo "<td>" . number_format($invoice['debt'], 2, ",", ".") . " MZN</td>";
+                        echo "<td>" . number_format($invoice['fine'], 2, ",", ".") . " MZN</td>";
+
+                        switch ($invoice['status']) :
                             case 1:
                                 echo '<td>Em dívida</td>
-                                        <td class="text-center">
-                                        <button title="Cancelar" onclick="cancel_invoice('.$factura->ID.')" class="btn btn-info btn-circle btn-sm">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <a href="' . $router->route("admin.facturas.visualizar", ["id" => $factura->ID]) . '" class="btn btn-success btn-circle btn-sm">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="' . $router->route("admin.facturas.imprimir", ["id" => $factura->ID]) . '" class="btn btn-dark btn-circle btn-sm">
+                                      <td class="text-center">
+                                        ' . ($invoice['debt'] == ($invoice['amount'] + $invoice['fine']) ?
+                                        '<button title="Cancelar" onclick="cancel_invoice(' . $invoice['id'] . ')" class="btn btn-danger btn-sm">
+                                            <i class="fa fa-times-circle"></i>
+                                        </button>' : '') . '
+                                        <a target="_blank" href="' . $router->route("invoice.print", ["id" => $invoice['id']]) . '" class="btn btn-dark btn-sm">
                                             <i class="fas fa-print"></i>
                                         </a>
                                       </td>
@@ -54,10 +62,7 @@
                             case 2:
                                 echo '<td>Paga</td>
                                     <td class="text-center">
-                                    <a href="' . $router->route("admin.facturas.visualizar", ["id" => $factura->ID]) . '" class="btn btn-success btn-circle btn-sm">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="' . $router->route("admin.facturas.imprimir", ["id" => $factura->ID]) . '" class="btn btn-dark btn-circle btn-sm">
+                                    <a target="_blank" href="' . $router->route("invoice.print", ["id" => $invoice['id']]) . '" class="btn btn-dark btn-sm">
                                         <i class="fas fa-print"></i>
                                     </a>
                                     </td>
@@ -66,130 +71,99 @@
                                 break;
 
                             case 3:
-                                echo "<td>Cancelada</td>
-                                        <td class='text-center'>
-                                        <button onclick='delete_invoice(".$factura->ID.")' class='btn btn-danger btn-circle btn-sm'>
-                                            <i class='fas fa-trash'></i>
+                                echo '<td>Cancelada</td>
+                                        <td class="text-center">
+                                        <button title="Reactivar" onclick="reactivate_invoice(' . $invoice['id'] . ')" class="btn btn-success btn-sm">
+                                            <i class="fa fa-check-circle"></i>
+                                        </button>
+                                        <button onclick="delete_invoice(' . $invoice['id'] . ')" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                         </td>
                                         </tr>                                    
-                                    ";
+                                    ';
                                 break;
 
                             case 4:
                                 echo '<td>Atrasada</td>
                                         <td class="text-center">
-                                        <button title="Tirar Multa" onclick="clean_fine('.$factura->ID.')" class="btn btn-warning btn-circle btn-sm">
-                                            <i class="fas fa-slash"></i>
+                                        <button title="Retirar multa" onclick="remove_fine_on_invoice(' . $invoice['id'] . ')" class="btn btn-success btn-sm">
+                                            <i class="fas fa-badge-dollar"></i>
                                         </button>
-                                        <button title="Cancelar" onclick="cancel_invoice('.$factura->ID.')" class="btn btn-danger btn-circle btn-sm">
-                                            <i class="fas fa-times"></i>
+                                        <button title="Cancelar" onclick="cancel_invoice(' . $invoice['id'] . ')" class="btn btn-danger btn-sm">
+                                            <i class="fa fa-times-circle"></i>
                                         </button>
-                                        <a title="Visualizar" href="' . $router->route("admin.facturas.visualizar", ["id" => $factura->ID]) . '" class="btn btn-success btn-circle btn-sm">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a title="Baixar" href="' . $router->route("admin.facturas.imprimir", ["id" => $factura->ID]) . '" class="btn btn-dark btn-circle btn-sm">
+                                        <a target="_blank" title="Baixar" href="' . $router->route("invoice.print", ["id" => $invoice['id']]) . '" class="btn btn-dark btn-sm">
                                             <i class="fas fa-print"></i>
                                         </a>
                                         </td>
                                         </tr>
                                     ';
                                 break;
-
-                            case 5:
-                                echo '<td>Multa Canc.</td>
-                                        <td class="text-center">
-                                        <button title="Cancelar" onclick="cancel_invoice('.$factura->ID.')" class="btn btn-danger btn-circle btn-sm">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <a title="Visualizar" href="' . $router->route("admin.facturas.visualizar", ["id" => $factura->ID]) . '" class="btn btn-success btn-circle btn-sm">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a title="Baixar" href="' . $router->route("admin.facturas.imprimir", ["id" => $factura->ID]) . '" class="btn btn-dark btn-circle btn-sm">
-                                            <i class="fas fa-print"></i>
-                                        </a>
-                                        </td>
-                                        </tr>
-                                    ';
-                                break;
-
                         endswitch;
                     endforeach;
-                ?>
-                </tbody>
-            </table>
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="card shadow mb-4">
-    <div class="card-header pb-1">
-        <h5 class="card-title text-primary p-0">Emissão de Factura</h5>
-    </div>
-    <div class="card-body">
-        <div class="col-sm-8 alert {type} alert-dismissible fade show" hidden id="callback">
-            <button type="button" class="close" onclick="hide()">
-                <span>&times;</span>
-            </button>
+    <div class="card shadow mb-4">
+        <div class="card-header pb-1">
+            <h5 class="card-title text-primary font-weight-bold p-0">Emissão de Factura</h5>
         </div>
-        <form class="user" id="form">
-            <div class="form-group col-sm-5">
-                <label for="Cliente" class="pl-2">Código de Cliente</label>
-                <select class="js-example-basic-single js-states form-control" name="Cliente" id="Cliente">
-                    <option></option>
-                    <?php foreach ($clientes as $client) {
-                        echo "<option value='{$client->ID}' id='cl{$client->ID}'>{$client->ID} - {$client->Nome}</option>";
-                    } ?>
-                </select>
+        <div class="card-body">
+            <div class="col-sm-8 alert {type} alert-dismissible fade show" hidden id="callback">
+                <button type="button" class="close" onclick="hide()">
+                    <span>&times;</span>
+                </button>
             </div>
-            <div class="form-group col-sm-5">
-                <label for="Consumo" class="pl-2">Leitura Atual</label>
-                <input type="text" name="Consumo" class="form-control form-control-user" onkeyup="somar()" id="Consumo"
-                       placeholder="Digite aqui a leitura obtida do contador">
-                <br>
-                <div class="alert-success">&nbsp;O valor da factura é <span id="resultado">0 MT</span></div>
-            </div>
-            <div class="form-group col-sm-5">
-                <div class="row-cols-2">
-                    <button type="submit" id="submit" class="btn btn-success">Emitir <i class="fas fa-check-circle"></i>
-                    </button>
-                    &nbsp;
-                    <button type="reset" class="btn btn-danger">Cancelar <i class="fas fa-times-circle"></i></button>
+            <form class="user" onsubmit="post_invoice(event)">
+                <div class="form-group col-sm-5">
+                    <label for="client" class="pl-2">Cliente</label>
+                    <select class="js-example-basic-single js-states form-control"
+                            oninput="set_min_counter_value(this.value)" onselect="set_min_counter_value(this.value)"
+                            onchange=set_min_counter_value(this.value)" name="client_id" id="client" required>
+                        <option></option>
+                        <?php
+                        foreach ($clients as $client) :
+                            echo "<option value='{$client['id']}' id='cl{$client['id']}'>{$client['id']} - {$client['name']} {$client['surname']}</option>";
+                        endforeach;
+                        ?>
+                    </select>
                 </div>
-            </div>
-        </form>
+
+                <div class="form-group col-sm-5">
+                    <label for="counter" class="pl-2">Leitura</label>
+                    <input type="number" min="0" step="1.0" name="counter" class="form-control" onkeyup="calculate()"
+                           id="counter"
+                           placeholder="Digite aqui a leitura obtida no contador" required>
+                    <br>
+                    <div class="alert-light rounded px-1">&nbsp;O consumo foi de <span id="consumption">0 m<sup>3</sup> </span>
+                    </div>
+                    <div class="alert-light rounded px-1">&nbsp;O valor da factura é <span id="amount">0 MZN</span>
+                    </div>
+                </div>
+                <div class="form-group col-sm-5">
+                    <div class="row-cols-2">
+                        <button type="submit" id="submit" class="btn btn-success">Emitir <i
+                                    class="fas fa-check-circle"></i>
+                        </button>
+                        &nbsp;
+                        <button type="reset" class="btn btn-danger">Cancelar <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
-    $(document).ready(function() {
-        $('.js-example-basic-single').select2({
-            placeholder: 'Selecione o cliente',
-            allowClear: true
-        });
-    });
-
-    //FUNCAO ON-THE-FLY PARA CALCULAR O PRECO DA FACTURA COM BASE NO CONSUMO DIGITADO
-    function somar(){
-
-        var x = document.getElementById("Consumo").value;
-        var calculo = parseFloat(x) * parseFloat("<?= BUSINESS_MODEL["Price"] ?>");
-
-        if(x <= <?= BUSINESS_MODEL["baseVolume"] ?>){
-            calculo = "<?= BUSINESS_MODEL["basePrice"] ?>";
-        }
-
-        if (x === undefined){
-            calculo = 0.00;
-        }
-        document.getElementById('resultado').innerHTML = calculo + " MT";
-    }
-
-    //HANDLER DO POST DE EMISSAO DE FACTURA
-    var form = document.getElementById('form');
-    var page = "<?= $router->route("admin.facturas.emitir")?>";
-    let pageeditar = "<?= $router->route("admin.facturas.cancelar") ?>";
-    let pagedelete = "<?= $router->route("admin.facturas.apagar") ?>";
-    let pagefine = "<?= $router->route("admin.facturas.divida") ?>";
-    let lastId = <?= $dados[0]->ID ?>;
-</script>
+<?php $this->start("scripts") ?>
+    <script>
+        const previous_counter_readings = <?= $previous_counter_readings ?>;
+        let last_invoice_id = <?= $data[0]['id'] ?? 0 ?>;
+        const price_per_m3 = <?= $_SESSION['config']['price_per_m3'] ?>;
+    </script>
+    <script src="<?= assets('js/invoices.js') ?>" type="text/javascript"></script>
+<?php $this->end() ?>

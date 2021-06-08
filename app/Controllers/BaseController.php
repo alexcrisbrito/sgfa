@@ -26,8 +26,16 @@ abstract class BaseController
         $this->view->addFolder("user",dirname(__DIR__, 1) . "/Views/user");
         $this->view->addFolder("public",dirname(__DIR__, 1) . "/Views/public");
         $this->view->addFolder("docs",dirname(__DIR__, 1) . "/Views/docs");
-        $this->view->addFolder("other",dirname(__DIR__, 1) . "/Views/other");
 
         $this->view->addData(["router" => $this->router]);
+
+        /* Let's check if the system is already installed */
+        if ($_ENV['APP_STATE'] == "INSTALL") {
+            header("Location: /install");
+        }
+    }
+
+    protected function jsonResult($result, $message = "", $data = []) {
+        echo json_encode(compact("result", "message", "data"));
     }
 }

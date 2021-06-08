@@ -11,25 +11,21 @@
                                 <img src="<?= assets("img/SGFA.png") ?>" class="text-center mb-4" height="70px"
                                      width="200px" alt="SGFA_logo">
                                 <h1 class="h4 text-gray-900 mb-4 text-center">Bem vindo ao SGFA !</h1>
-                                <div class="alert {type} alert-dismissible fade show" hidden id="callback">
-                                    <button type="button" class="close" onclick="hide()">
-                                        <span>&times;</span>
-                                    </button>
-                                </div>
+                                <?= $this->show_alert() ?>
                                 <p id="welcome_text" class="pb-3">
                                     É com grande prazer que damos-lhe as boas vindas ao nosso Sistema de Gestão de
                                     Furos de Água, que apartir de hoje o vai ajudar a fazer a gestão do seu negócio,
                                     esperamos que o sistema consiga alcançar os resultados que espera !<br><br>
                                     Para continuar com a configuração, introduza a <b>chave única de ativação do produto</b>
-                                    fornecida no campo abaixo
+                                    que lhe foi fornecida <b>exatamente como vem descrita</b>, no campo abaixo
                                 </p>
                             </div>
-                            <form class="user" action="" method="post">
+                            <form class="user" action="<?= $router->route("form.index") ?>" method="post">
                                 <div class="form-group">
                                     <label for="activation-key"><i class="fa fa-key"></i> Chave de Ativação</label>
                                     <input type="text" class="form-control" id="activation-key"
                                            name="activation_key" placeholder="XXXXXX-XX-XXXX"
-                                           pattern="[A-Z0-9][-][A-Z0-9][-][A-Z][A-Z0-9]{6,1,2,1,4}" required>
+                                           pattern="[A-Z0-9][-][A-Z0-9][-][A-Z][A-Z0-9]{6,1,2,1,4}" maxlength="14" required>
                                 </div>
                                 <div class="text-center">
                                     <button type="submit" class="btn btn-success">
@@ -40,7 +36,8 @@
                             <br>
                             <div class="text-center">
                                 <a class="small" href="https://nextgenit-mz.com">NextGen IT &copy; SGFA
-                                    v<?= SITE["version"] ?></a>
+                                    <?= $_ENV['APP_VERSION'] ?></a>
+                                <p class="pt-2">Build N<sup>o</sup> <?= $_ENV['APP_BUILD_NUMBER'] ?></p>
                             </div>
                         </div>
                     </div>

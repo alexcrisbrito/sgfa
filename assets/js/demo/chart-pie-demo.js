@@ -1,5 +1,5 @@
 // Set new default font family and font color to mimic Bootstrap's default styling
-Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+Chart.defaults.global.defaultFontFamily = 'Montserrat' || 'sans-serif';
 Chart.defaults.global.defaultFontColor = '#858796';
 
 // Pie Chart Example
@@ -26,6 +26,12 @@ let myPieChart = new Chart(pie, {
       yPadding: 15,
       displayColors: false,
       caretPadding: 10,
+      callbacks: {
+        label: function(tooltipItem, chart) {
+          return Intl.NumberFormat('de-DE')
+              .format(chart.datasets[tooltipItem.datasetIndex].data[tooltipItem.index]) + unitPie;
+        }
+      }
     },
     legend: {
       display: true,

@@ -1,6 +1,9 @@
 <?php $this->layout("worker::_template_") ?>
-<h1 class="h3 mb-2 text-gray-800">Clientes</h1>
-<p class="mb-4">Abaixo sita uma tabela com os clientes registrados, começando pelos recentes e também poderá tomar accões
+<h1 class="h3 mb-2 font-weight-bold text-gray-800">
+    <i class="fa fa-user-circle"></i> Clientes
+</h1>
+<p class="mb-4">Abaixo sita uma tabela com os clientes registrados, começando pelos recentes e também poderá tomar
+    accões
     por cada um deles ou personalizar a forma de apresentação
     através das opções abaixo</p>
 
@@ -8,48 +11,40 @@
 <div class="card shadow mb-4">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+            <table class="table table-bordered" id="dataTable">
                 <thead>
                 <tr>
-                    <th>Código</th>
+                    <th>#</th>
                     <th>Nome</th>
                     <th>Celular</th>
                     <th>Morada</th>
+                    <th>Username</th>
                     <th>Data de Adesão</th>
+                    <th>Estado</th>
                     <th>Acções</th>
                 </tr>
                 </thead>
                 <tbody>
                 <?php
-                foreach ($dados as $cliente) :
-                    echo "<tr id='{$cliente->ID}'>";
-                    echo "<td>{$cliente->ID}</td>";
-                    echo "<td>{$cliente->Nome}</td>";
-                    echo "<td>{$cliente->Celular}</td>";
-                    echo "<td>{$cliente->Morada}</td>";
-                    echo "<td>{$cliente->Data_Adesao}</td>";
-
-                    if ($cliente->Estado == 1) :
-                        echo '<td class="text-center">
-                                  <a href="'.$router->route("admin.clientes.editar",["id"=>$cliente->ID]).'" class="btn btn-info btn-circle btn-sm">
-                                    <i class="fas fa-pencil-alt"></i>
-                                  </a>
-                                  <button onclick="deactivate_client('.$cliente->ID.',1)" class="btn btn-warning btn-circle btn-sm">
-                                    <i class="fas fa-times-circle"></i>
-                                  </button>
-                                </td>';
-                        echo "</tr>";
-                    else:
-                        echo '<td class="text-center">
-                                  <a href="'.$router->route("admin.clientes.editar",["id"=>$cliente->ID]).'" class="btn btn-info btn-circle btn-sm">
-                                      <i class="fas fa-pencil-alt"></i>
-                                  </a>
-                                  <button onclick="deactivate_client('.$cliente->ID.',2)" class="btn btn-success btn-circle btn-sm">
-                                      <i class="fas fa-check-circle"></i>
-                                  </button>
-                              </td>';
-                        echo "</tr>";
-                    endif;
+                foreach ($clients as $client) :
+                    echo "<tr id='cl{$client['id']}'>";
+                    echo "<td>{$client['id']}</td>";
+                    echo "<td>{$client['name']} {$client['surname']}</td>";
+                    echo "<td>{$client['phone']}</td>";
+                    echo "<td>{$client['address']}</td>";
+                    echo "<td>{$client['credentials']['username']}</td>";
+                    echo "<td>{$client['date_added']}</td>";
+                    echo "<td>". ($client['status'] == "1" ? 'Activo' : 'Inactivo') ."</td>";
+                    echo '<td class="text-center">
+                             <button title="Editar informações" onclick="open_edit_modal('.$client['id'].')" class="btn btn-dark">
+                                 <i class="fas fa-user-edit"></i>
+                             </button>
+                             <button title="Modificar estado" onclick="status_of_client('. $client['id'] .','.intval($client['status']).')" 
+                                class="btn btn-'.($client['status'] == "1" ? 'danger' : 'success').'">
+                                 <i class="fas fa-'.($client['status'] == "1" ? 'times' : 'check').'-circle"></i>
+                             </button>
+                          </td>';
+                    echo "</tr>";
                 endforeach;
                 ?>
                 </tbody>
@@ -60,7 +55,7 @@
 
 <div class="card shadow mb-4">
     <div class="card-header pb-1">
-        <h5 class="card-title text-primary p-0">Cadastro de Cliente</h5>
+        <h5 class="card-title text-primary font-weight-bold p-0">Registro de Cliente</h5>
     </div>
     <div class="card-body">
         <div class="col-sm-8 alert {type} alert-dismissible fade show" hidden id="callback">
@@ -68,20 +63,25 @@
                 <span>&times;</span>
             </button>
         </div>
-        <form class="user" id="form">
+        <form class="user" onsubmit="post_client(event)">
             <div class="form-group">
-                <label for="Nome" class="pl-2">Nome Completo</label>
-                <input value="" type="text" name="Nome" class="form-control form-control-user" maxlength="255" id="Nome"
+                <label for="name" class="pl-2">Nome</label>
+                <input type="text" name="name" class="form-control" maxlength="255" id="name"
                        placeholder="Digite aqui o nome do cliente">
             </div>
             <div class="form-group">
-                <label for="Celular" class="pl-2">Número de Celular</label>
-                <input type="text" name="Celular" class="form-control form-control-user" maxlength="9" id="Celular"
+                <label for="surname" class="pl-2">Apelido</label>
+                <input type="text" name="surname" class="form-control" maxlength="255" id="surname"
+                       value="" placeholder="Digite aqui o apelido do cliente">
+            </div>
+            <div class="form-group">
+                <label for="phone" class="pl-2">Número de Celular</label>
+                <input type="text" name="phone" class="form-control" maxlength="9" id="phone"
                        placeholder="Digite aqui o número de celular">
             </div>
             <div class="form-group">
-                <label for="Morada" class="pl-2">Morada</label>
-                <input type="text" name="Morada" class="form-control form-control-user" maxlength="150" id="Morada"
+                <label for="address" class="pl-2">Morada</label>
+                <input type="text" name="address" class="form-control" maxlength="150" id="address"
                        placeholder="Digite aqui a morada">
             </div>
             <div class="form-group col-sm-5">
@@ -94,10 +94,56 @@
         </form>
     </div>
 </div>
-<script>
-    let form = document.getElementById('form');
-    let page = "<?= $router->route("admin.clientes.cadastrar")?>";
-    let lastId = <?= $dados[array_key_last($dados)]->ID ?>;
-    let pagestate = "<?= $router->route("admin.clientes.estado")?>";
-</script>
 
+<div class="modal fade" id="edit-modal" tabindex="-1" role="dialog" aria-labelledby="edit-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title font-weight-bold" id="edit-modal-title">Editar informações do cliente</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><i class="far fa-times-circle"></i></span>
+                </button>
+            </div>
+            <form action="" onsubmit="post_edit_client(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="name" class="pl-2">Nome</label>
+                        <input type="text" name="name" class="form-control" maxlength="255" id="edit_name"
+                               placeholder="Digite aqui o nome do cliente">
+                    </div>
+                    <div class="form-group">
+                        <label for="surname" class="pl-2">Apelido</label>
+                        <input type="text" name="surname" class="form-control" maxlength="255" id="edit_surname"
+                               placeholder="Digite aqui o apelido do cliente">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone" class="pl-2">Número de Celular</label>
+                        <input type="text" name="phone" class="form-control" maxlength="9" id="edit_phone"
+                               placeholder="Digite aqui o número de celular">
+                    </div>
+                    <div class="form-group">
+                        <label for="address" class="pl-2">Morada</label>
+                        <input type="text" name="address" class="form-control" maxlength="150" id="edit_address"
+                               placeholder="Digite aqui a morada">
+                    </div>
+                    <input type="hidden" value="" name="id" id="edit_id">
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn btn-success">
+                        Gravar <i class="fas fa-check-circle"></i>
+                    </button>
+                    <button type="reset" class="btn btn-danger" data-dismiss="modal">
+                        Cancelar <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php $this->start('scripts') ?>
+<script src="<?= assets('js/clients.js') ?>" type="text/javascript"></script>
+<script>
+    let last_client_id = <?= $clients[0]->id ?? 0 ?>;
+</script>
+<?php $this->end() ?>

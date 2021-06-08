@@ -9,58 +9,84 @@
     <meta name="keywords" content="SGFA,Sistema de gestao de furo de agua,nextgen it">
     <meta name="author" content="NextGeneration IT">
 
-    <title>AGUAS AZ | Sistema de Gestão de Furo de Água</title>
+    <title><?= $_ENV['LICENSED_TO'] ?> | Sistema de Gestão de Furo de Água</title>
 
-    <!-- Custom fonts for this template-->
     <link href="<?= assets('vendor/fontawesome-free/css/all.min.css') ?>" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-          rel="stylesheet">
-
-    <!-- Custom styles for this template-->
     <link href="<?= assets('css/sb-admin-2.min.css') ?>" rel="stylesheet" type="text/css">
-    <link href="<?= assets('css/costum.css') ?>" rel="stylesheet" type="text/css">
+    <link href="<?= assets('css/custom.css') ?>" rel="stylesheet" type="text/css">
     <script src="<?= assets('vendor/jquery/jquery.min.js') ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,800;1,500;1,700&display=swap"
+          rel="stylesheet">
+    <style>
+        body{
+            font-family: "Montserrat";
+        }
+    </style>
 </head>
 
 <body id="page-top">
+<div id="ajaxloader" hidden></div>
 
-<!-- Page Wrapper -->
 <div id="wrapper">
+    <ul class="navbar-nav bg-gradient-info sidebar sidebar-dark accordion" id="accordionSidebar">
 
-    <!-- Sidebar -->
-    <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-
-        <!-- Sidebar - Brand -->
-        <a class="sidebar-brand mt-4 d-flex align-items-center justify-content-center" href="<?= $router->route("admin.home") ?>">
-            <div class="sidebar-brand-text">
-                <img src="<?=assets("img/SGFA.png")?>" height="120px" width="200px">
+        <a class="sidebar-brand mt-4 d-flex align-items-center justify-content-center"
+           href="<?= $router->route("user.home") ?>">
+            <div class="sidebar-brand-text bg-white p-1 rounded">
+                <img src="<?= assets("img/SGFA.png") ?>" height="60px" width="180px">
             </div>
         </a>
 
         <li class="nav-item active">
             <a class="nav-link" href="<?= $router->route("user.home") ?>">
-                <i class="fas fa-fw fa-tachometer-alt"></i>
-                <span>Painel Inicial</span></a>
+                <i class="fas fa-fw fa-chart-area" style="font-size: 1rem"></i>
+                Painel Inicial
+            </a>
         </li>
 
         <hr class="sidebar-divider my-0">
         <li class="nav-item active">
-            <a class="nav-link" href="<?= $router->route("user.facturas") ?>">
-                <i class="fas fa-fw fa-file-invoice-dollar"></i>
-                <span>Facturas</span></a>
+            <a class="nav-link" href="<?= $router->route("user.invoices") ?>">
+                <i class="fas fa-fw fa-file-invoice-dollar" style="font-size: 1rem"></i>
+                Facturas
+            </a>
         </li>
 
         <hr class="sidebar-divider my-0">
         <li class="nav-item active">
-            <a class="nav-link" href="<?= $router->route("user.recibos") ?>">
-                <i class="fas fa-fw fa-receipt"></i>
-                <span>Recibos</span></a>
+            <a class="nav-link" href="<?= $router->route("user.receipts") ?>">
+                <i class="fas fa-fw fa-receipt" style="font-size: 1rem"></i>
+                Recibos
+            </a>
         </li>
+
+        <hr class="sidebar-divider my-0">
+        <li class="nav-item active">
+            <a class="nav-link" href="<?= $router->route("user.pay") ?>">
+                <i class="fas fa-fw fa-money-bill-wave" style="font-size: 1rem"></i>
+                Pagar online
+            </a>
+        </li>
+
+        <hr class="sidebar-divider my-0">
+        <li class="nav-item active">
+            <a class="nav-link text-break" href="<?= $router->route("user.config") ?>">
+                <i class="fas fa-fw fa-cogs" style="font-size: 1rem"></i>
+                Definições
+            </a>
+        </li>
+
 
         <!-- Sidebar Toggler (Sidebar) -->
-        <div class="text-center d-none d-md-inline">
+        <div class="text-center d-none d-md-inline pt-5">
             <button class="rounded-circle border-0" id="sidebarToggle"></button>
+        </div>
+
+        <div class="font-weight-bold text-center mt-5 pt-lg-5 text-break d-none d-md-inline">
+            <p class="text-white">SGFA <?= $_ENV['APP_VERSION'] ?></p>
+            <p class="text-white"><?= $_ENV['LICENSED_TO'] ?> &copy; 2021</p>
         </div>
     </ul>
     <!-- End of Sidebar -->
@@ -81,28 +107,20 @@
 
                 <!-- Topbar Navbar -->
                 <ul class="navbar-nav ml-auto">
-
                     <div class="topbar-divider d-none d-sm-block"></div>
 
-                    <!-- Nav Item - User Information -->
-                    <li class="nav-item dropdown no-arrow">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="mr-2 d-none d-lg-inline text-gray-600 text-uppercase small"><?= mb_split(" ",$cliente->Nome)[0]; ?></span>
-                            <img class="img-profile rounded-circle" src="https://source.unsplash.com/QAB-WJcbgJk/60x60">
+                    <li class="nav-item">
+                        <a class="nav-link disabled" href="#">
+                            <span class="mr-2 d-none d-lg-inline text-gray-600 small">CLIENTE</span>
+                            <img class="img-profile rounded-circle"
+                                 src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png">
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                             aria-labelledby="userDropdown">
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                Meus Dados
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="<?= $router->route("auth.logout") ?>">
-                                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                Sair
-                            </a>
-                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="<?= $router->route("auth.logout") ?>">
+                            <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2"></i>
+                            Sair
+                        </a>
                     </li>
 
                 </ul>
@@ -116,15 +134,6 @@
 
                 </div>
             </main>
-
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>AGUAS AZ &copy; 2020</span>
-                    </div>
-                </div>
-            </footer>
-
         </div>
     </div>
     <!-- Scroll to Top Button-->

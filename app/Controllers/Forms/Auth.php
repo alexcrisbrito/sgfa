@@ -7,11 +7,14 @@ use App\Helpers\AdminSession;
 use App\Helpers\SessionManager;
 use App\Helpers\UserSession;
 use App\Helpers\WorkerSession;
+use App\Models\Accounts;
 use App\Models\Admin;
 use App\Models\Admin_Login;
 use App\Models\Client;
 use App\Models\Client_Login;
+use App\Models\Config;
 use App\Models\Login;
+use PDO;
 
 class Auth extends BaseController
 {
@@ -26,46 +29,51 @@ class Auth extends BaseController
         $pwd = filter_var($data["pwd"], FILTER_DEFAULT);
 
         if (!$id or !$pwd) {
-
-            echo ajax("msg", ["type" => "alert-warning", "msg" => "[!] Por favor, preencha todos os campos corretamente."]);
+            echo ajax("msg", ["type" => "alert-warning", "msg" => "Por favor, preencha todos os campos corretamente."]);
             return;
         }
 
-        $exists = (new Login())->find()->where("username = '{$id}'")->execute();
+        $login = (new Login())->find()->where("username = '$id'")->execute();
 
-        if ($exists) {
 
-            switch ($exists->role) {
-                case 2:
-                    $credentials = (new Client_Login())->find()->where("id = '{$exists->sub_id}'")->execute();
-                    $data = (new Client())->find()->where("id = '{$credentials->client_id}'")->execute(\PDO::FETCH_ASSOC);
-                    $type = 'user';
-                    break;
+        if ($login) {
 
-                case 1:
-                case 0:
-                    $credentials = (new Admin_Login())->find()->where("id = '{$exists->sub_id}'")->execute();
-                    $data = (new Admin())->find()->where("id = '{$credentials->admin_id}'")->execute(\PDO::FETCH_ASSOC);
-                    $type = ($exists->role == 0 ? 'admin' : 'worker');
-                    break;
+            if ($login->status == 0) {
+                echo ajax("msg", ["type" => "alert-danger", "msg" =>
+                    "A sua conta está suspensa, por favor contacte a nossa linha do cliente para esclarecimentos!"]);
+                return;
             }
 
-            if (password_verify($pwd, $credentials->password)) {
+            if ($login->role == 2) {
+                $data = (new Client())->find()->where("id = '$login->client_id'")->execute(PDO::FETCH_ASSOC);
+                $type = 'user';
 
-                if($exists->first_login === true) SessionManager::setIsFirstLogin();
+            } else {
+                $data = (new Admin())->find()->where("id = '$login->admin_id'")->execute(PDO::FETCH_ASSOC);
+                $type = $login->role == 0 ? 'admin' : 'worker';
+                $_SESSION['config'] = (new Config())->find()->execute(PDO::FETCH_ASSOC);
+                $_SESSION['accounts'] = (new Accounts())->find()->execute(PDO::FETCH_ASSOC, true);
+            }
+
+            if (password_verify($pwd, $login->password)) {
+
+                if ($login->first_login == 1) SessionManager::setIsFirstLogin();
                 SessionManager::set($type, $data);
 
-                echo ajax("redirect", [$this->router->route("home")]);
+                echo ajax("redirect", [$this->router->route("auth.home")]);
                 return;
             }
         }
 
-        echo ajax("msg", ["type" => "alert-danger", "msg" => "[!] Os dados estão incorretos."]);
+        echo ajax("msg", ["type" => "alert-danger", "msg" => "Os dados estão incorretos."]);
     }
 
     public function logout(): void
     {
         SessionManager::unset();
+        SessionManager::unsetFirstLogin();
+        if (isset($_SESSION['config'])) unset($_SESSION['config']);
+        if (isset($_SESSION['accounts'])) unset($_SESSION['accounts']);
         $this->router->redirect("pub.login");
     }
 
@@ -73,41 +81,65 @@ class Auth extends BaseController
     {
         if (SessionManager::isFirstLogin()) {
             $this->router->redirect("pub.change");
+            exit;
         }
 
         if (UserSession::has()) {
-
             $this->router->redirect("user.home");
-
-        } elseif (AdminSession::has()) {
-
-            $this->router->redirect("admin.home");
-
-        } elseif (WorkerSession::has()) {
-
-            $this->router->redirect("worker.home");
-
+            exit;
         }
 
+        if (AdminSession::has()) {
+            $this->router->redirect("admin.home");
+            exit;
+        }
+
+        $this->router->redirect("worker.home");
     }
 
     public function change_pwd($data): void
     {
-        $password = filter_var($data["new_passwd"], FILTER_SANITIZE_STRING);
+        $password = filter_var($data["password"]);
+        $repeat_password = filter_var($data['repeat-password']);
 
-        if (!$password) {
-            echo ajax("msg", ["type" => "alert-danger", "msg" => "[!] Por favor, preencha o campo de nova senha corretamente."]);
+        if (!$password || !$repeat_password || $password !== $repeat_password) {
+            echo ajax("msg", ["type" => "alert-danger", "msg" => "Por favor, preencha os campos corretamente."]);
             return;
         }
 
-        if(SessionManager::has()) {
+        if (SessionManager::has()) {
 
             if (UserSession::has()) {
-                $updated = (new Client_Login())->update(["password" => password_hash($password, PASSWORD_DEFAULT), "first_login" => 0])
-                    ->where("id = '" . UserSession::get()['id'] . "'")->execute();
-            } elseif (AdminSession::has() || WorkerSession::has()) {
-                $updated = (new Admin_Login())->update(["password" => password_hash($password, PASSWORD_DEFAULT), "first_login" => 0])
-                    ->where("id = '" . AdminSession::get()['id'] . "'")->execute();
+
+                $check = (new Login())->find("password")
+                    ->where("client_id = '" . UserSession::get()['id'] . "'")->execute();
+
+                if (password_verify($password, $check->password)) {
+                    echo ajax("msg", ["type" => "alert-danger", "msg" =>
+                        "Por favor, utilize uma senha diferente da que foi gerada pelo sistema !"]);
+                    return;
+                }
+
+                $updated = (new Login())
+                    ->update(["password" => password_hash($password, PASSWORD_DEFAULT), "first_login" => 0])
+                    ->where("client_id = '". UserSession::get()['id'] ."'")->execute();
+            }
+
+            if (AdminSession::has() || WorkerSession::has()) {
+                $check = (new Login())->find("password")
+                    ->where("admin_id = '". (AdminSession::get()['id'] ?? WorkerSession::get()['id']) ."'")
+                    ->execute();
+
+                if (password_verify($password, $check->password)) {
+                    echo ajax("msg", ["type" => "alert-danger", "msg" =>
+                        "Por favor, utilize uma senha diferente da que foi gerada pelo sistema !"]);
+                    return;
+                }
+
+                $updated = (new Login())
+                    ->update(["password" => password_hash($password, PASSWORD_DEFAULT), "first_login" => 0])
+                    ->where("admin_id = '". (AdminSession::get()['id'] ?? WorkerSession::get()['id']) ."'")
+                    ->execute();
             }
 
             if ($updated) {
@@ -117,6 +149,6 @@ class Auth extends BaseController
             }
         }
 
-        echo ajax("msg", ["type" => "alert-danger", "msg" => "[!] Erro ao alterar a sua password, tente novamente."]);
+        echo ajax("redirect", [$this->router->route("home")]);
     }
 }

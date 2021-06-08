@@ -23,7 +23,7 @@ class Pub extends BaseController
 
     public function change():void
     {
-        if(!SessionManager::has() || SessionManager::isFirstLogin()){
+        if(!SessionManager::has() || !SessionManager::isFirstLogin()){
             $this->router->redirect("pub.login");
         }
 

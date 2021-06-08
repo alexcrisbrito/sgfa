@@ -14,17 +14,13 @@
                                     <button class="btn btn-primary btn-circle">3</button>
                                     Dados do negócio
                                 </h1>
-                                <div class="alert {type} alert-dismissible fade show" hidden id="callback">
-                                    <button type="button" class="close" onclick="hide()">
-                                        <span>&times;</span>
-                                    </button>
-                                </div>
+                                <?= $this->show_alert() ?>
                             </div>
-                            <form class="user" action="" method="post">
+                            <form class="user" action="<?= $router->route("form.setup") ?>" method="post">
                                 <div class="form-group">
                                     <label for="price"><i class="fa fa-dollar-sign"></i> Preço por m<sup>3</sup></label>
-                                    <input type="text" class="form-control" id="price"
-                                           name="price" required>
+                                    <input type="number" min="1.00" value="0.00" class="form-control" id="price"
+                                           name="price_per_m3" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="expiry_mode"><i class="fa fa-question-circle"></i> Modo de expiração de factura</label>
@@ -36,7 +32,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="date_expiry"><i class="fa fa-calendar"></i> Dia da expiração</label>
-                                    <input type="number" max="30" min="1" class="form-control" id="date_expiry"
+                                    <input type="number" max="30" min="1" value="10" class="form-control" id="date_expiry"
                                            name="expiry_date" required>
                                 </div>
                                 <div class="form-group">
@@ -45,10 +41,14 @@
                                            name="fine" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="wallet"><i class="fa fa-wallet"></i> Detalhes de pagamento</label>
-                                    <textarea class="form-control" name="payment_method" id="wallet"
-                                              placeholder="Digite 1 detalhe por linha, ex:&#10;Mpesa - 841234567&#10;MBim - 8212191"
-                                              cols="30" rows="5" required></textarea>
+                                    <label for="base_volume"><i class="fa fa-tachometer"></i> Consumo Base</label>
+                                    <input type="number" value="0.00" class="form-control" id="base_volume"
+                                           name="base_volume" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="base_price"><i class="fa fa-badge-dollar"></i> Tarifa Base</label>
+                                    <input type="number" value="0.00" class="form-control" id="base_price"
+                                           name="base_price" required>
                                 </div>
                                 <div class="text-center">
                                     <button type="submit" class="btn btn-success">
@@ -59,7 +59,7 @@
                             <br>
                             <div class="text-center">
                                 <a class="small" href="https://nextgenit-mz.com">NextGen IT &copy; SGFA
-                                    v<?= SITE["version"] ?></a>
+                                    <?= $_ENV['APP_VERSION'] ?></a>
                             </div>
                         </div>
                     </div>

@@ -22,7 +22,7 @@ class Expenses extends BaseController
             return;
         }
 
-        $save = (new \App\Models\Expenses())->save(["name" => $name, "amount" => $amount, "date_added" => date("d/m/Y")])
+        $save = (new \App\Models\Expense())->save(["name" => $name, "amount" => $amount, "date_added" => date("d/m/Y")])
             ->execute();
         if (!$save) {
 
@@ -37,7 +37,7 @@ class Expenses extends BaseController
     {
         $expense_id = filter_var($data["expense_id"], FILTER_VALIDATE_INT);
 
-        $delete = (new \App\Models\Expenses())->delete()->where("id = '{$expense_id}'")->execute();
+        $delete = (new \App\Models\Expense())->delete()->where("id = '{$expense_id}'")->execute();
         if (!$delete) {
             echo ajax("msg", ["type" => "error", "msg" => "[!] Erro ao apagar a despesa, tente novamente."]);
             return;

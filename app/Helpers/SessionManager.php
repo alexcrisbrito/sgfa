@@ -21,18 +21,20 @@ class SessionManager
         }
     }
 
-    /* Remove current's user session */
+    /* Remove all sessions */
     public static function unset() :void
     {
-        if($key = array_search(self::$allowed, $_SESSION)) {
-            unset($_SESSION[$key]);
+        for ($i = 0; $i < count(self::$allowed); $i++) {
+            if(array_key_exists(self::$allowed[$i], $_SESSION)) {
+                unset($_SESSION[self::$allowed[$i]]);
+            }
         }
     }
 
     /* Retrieve a session */
     public static function get($name)
     {
-        return isset($_SESSION[$name]) && in_array($name, self::$allowed) ? $_SESSION[$name] : false;
+        return $_SESSION[$name] ?? null;
     }
 
     /* Check if exists */
@@ -50,7 +52,7 @@ class SessionManager
     /* Remove first login */
     public static function unsetFirstLogin() :void
     {
-        unset($_SESSION['first_login']);
+        if(isset($_SESSION['first_login'])) unset($_SESSION['first_login']);
     }
 
     public static function setIsFirstLogin() :void

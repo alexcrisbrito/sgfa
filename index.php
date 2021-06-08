@@ -1,11 +1,5 @@
 <?php
 
-/* Let's check if the system is already installed */
-if (file_exists("./install/")) {
-    header("Location: /install");
-    exit;
-}
-
 ob_start();
 session_start();
 
@@ -19,74 +13,93 @@ $router->namespace("App\Controllers\Pages");
 
 /* Authentication Routes */
 $router->get("/","Pub:login","pub.login");
-$router->get("/access","Auth:home","home");
-$router->get("/sair","Auth:logout","auth.logout");
-$router->get("/nova-senha","Pub:change","pub.change");
+$router->get("/secure/change-to-new-password","Pub:change","pub.change");
 
 /* Administration pages */
 $router->group("admin");
-$router->get("/home","Admin:home","admin.home");
-$router->get("/faturas","Admin:invoices","admin.facturas");
-$router->get("/recibos","Admin:receipts","admin.recibos");
-$router->get("/mensagens","Admin:messages","admin.mensagens");
-$router->get("/configurar","Admin:colab","admin.colab");
-$router->get("/financeiro","Admin:financial","admin.financeiro");
-$router->get("/clientes","Admin:clients","admin.clientes");
+$router->get("/","Admin:home","admin.home");
+$router->get("/invoices","Admin:invoices","admin.invoices");
+$router->get("/receipts","Admin:receipts","admin.receipts");
+$router->get("/sms","Admin:messages","admin.sms");
+$router->get("/collaborators","Admin:collaborator","admin.collaborators");
+$router->get("/financial","Admin:financial","admin.financial");
+$router->get("/clients","Admin:clients","admin.clients");
+$router->get("/config", "Admin:config", "admin.config");
 
 /* Worker Pages */
-$router->group("func");
-$router->get("/home","Worker:index","worker.home");
-$router->get("/faturas","Worker:invoices","worker.facturas");
-$router->get("/recibos","Worker:receipts","worker.recibos");
-$router->get("/mensagens","Worker:messages","worker.mensagens");
-$router->get("/clientes","Worker:clients","worker.clientes");
+$router->group("collab");
+$router->get("/","Worker:index","worker.home");
+$router->get("/invoice","Worker:invoices","worker.invoices");
+$router->get("/receipt","Worker:receipts","worker.receipts");
+$router->get("/sms","Worker:messages","worker.sms");
+$router->get("/client","Worker:clients","worker.clients");
+$router->get("/config", "Worker:config", "worker.config");
 
 /* Users */
+$router->group("client");
+$router->get("/","User:home","user.home");
+$router->get("/invoices","User:invoices","user.invoices");
+$router->get("/receipts","User:receipts","user.receipts");
+$router->get("/configurations","User:config","user.config");
+$router->get("/pay-online","User:pay","user.pay");
+
 $router->group(null);
-$router->get("/home","Nav:home","user.home");
-$router->get("/faturas","Nav:invoices","user.facturas");
-$router->get("/recibos","Nav:receipts","user.recibos");
-
-
 $router->namespace("App\Controllers\Forms");
-/* Invoice */
-$router->post("/facturas/emitir","Invoices:add","admin.facturas.emitir");
-$router->post("/facturas/editar/{id}","Invoices:edit","admin.facturas.editar");
-$router->post("/facturas/divida","Invoices:debt","admin.facturas.divida");
-$router->post("/facturas/apagar","Invoices:delete","admin.facturas.apagar");
-$router->post("/facturas/cancelar","Invoices:cancel","admin.facturas.cancelar");
-$router->get("/facturas/visualizar/{id}","Invoices:visualize","admin.facturas.visualizar");
-$router->get("/facturas/imprimir/{id}","Invoices:print","admin.facturas.imprimir");
 
-/* Expenses */
-$router->post("/despesas/registrar","Financial:expense_add","admin.financeiro.despesas.emitir");
-$router->post("/despesas/apagar","Financial:expense_delete","admin.financeiro.despesas.apagar");
+/* Invoice */
+$router->post("/invoice/add","Invoices:add","invoice.add");
+$router->post("/invoice/edit/{id}","Invoices:edit","invoice.edit");
+$router->get("/invoice/clear-fine/{id}","Invoices:debt","invoice.clear_fine");
+$router->get("/invoice/delete/{id}","Invoices:delete","invoice.delete");
+$router->get("/invoice/cancel/{id}","Invoices:cancel","invoice.cancel");
+$router->get("/invoice/reactivate/{id}","Invoices:reactivate","invoice.reactivate");
+$router->get("/invoice/view/{id}","Invoices:visualize","invoice.preview");
+$router->get("/invoice/print/{id}","Invoices:print","invoice.print");
+
+/* Financial */
+$router->post("/financial/expense/add","Financial:expense_add","financial.expenses.add");
+$router->post("/financial/expense/delete","Financial:expense_delete","financial.expenses.delete");
+$router->post("/financial/account/add", "Financial:account_add", "financial.accounts.add");
 
 /* Receipt */
-$router->get("/recibos/visualizar/{id}","Receipts:visualize","admin.recibos.visualizar");
-$router->get("/recibos/imprimir/{id}","Receipts:print","admin.recibos.imprimir");
-$router->post("/recibos/emitir","Receipts:add","admin.recibos.emitir");
+$router->post("/receipt/add","Receipts:add","receipt.add");
+$router->get("/receipt/view/{id}","Receipts:visualize","receipt.visualizar");
+$router->get("/receipt/print/{id}","Receipts:print","receipt.print");
 
 /* Client */
-$router->post("/clientes/cadastrar","Clients:add","admin.clientes.cadastrar");
-$router->get("/clientes/editar/{id}","Clients:get","admin.clientes.editar");
-$router->post("/clientes/atualizar","Clients:update","admin.clientes.atualizar");
-$router->post("/clientes/estado","Clients:status","admin.clientes.estado");
+$router->post("/client/add","Clients:add","client.add");
+$router->post("/client/update","Clients:update","client.update");
+$router->get("/client/status/{id}/{switch}","Clients:status","client.status");
+$router->get("/client/historic/{id}", "Clients:historic", "client.historic");
 
 /* Authentication */
 $router->post("/login","Auth:login","auth.login");
 $router->post("/change","Auth:change_pwd","auth.change");
+$router->get("/access","Auth:home","auth.home");
+$router->get("/logout","Auth:logout","auth.logout");
 
-///* SMS */
-//$router->post("/messages/send","Messages:send","admin.messages.send");
+/* Config */
+$router->post('/config/business/update', "Config:update_config", "config.business.update");
+$router->get('/config/business/switch-auto-sms', "Config:auto_sms", "config.business.auto_sms");
+$router->post('/config/account/update-password', "Config:update_password", "config.account.password");
+$router->post('/config/account/update-info', "Config:update_account_info", "config.account.info");
+$router->post('/config/users/new-user', "Config:create_new_user", "config.users.new_user");
+$router->post('/config/users/update-info', "Config:update_user_info", "config.users.info");
+$router->post('/config/users/switch-state/{id}/{switch}', "Config:user_state", "config.users.state");
 
+/* SMS */
+$router->post("/messages/send","Messages:send","admin.messages.send");
+$router->post("/messages/request","Messages:request","admin.messages.request");
+
+/* Payments */
+$router->post("/secure/provider_payment/m-pesa","Payments:pay","mpesa.pay");
 
 /* Routes dispatch */
 $router->dispatch();
 
 /* In case of error, redirect to home */
-//if($router->error()){
-//    $router->redirect("home");
-//}
+if($router->error()){
+    $router->redirect("auth.home");
+}
 
 ob_end_flush();

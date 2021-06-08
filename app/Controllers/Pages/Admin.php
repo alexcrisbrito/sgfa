@@ -2,15 +2,13 @@
 
 namespace App\Controllers\Pages;
 
-use App\Controllers\BaseController;
+use App\Helpers\AdminSession;
 use PDO;
-use App\Models\{
-    Receipt,
-    Invoice,
-    Client,
-    Expenses
-};
 use stdClass;
+use App\Contracts\Messages;
+use App\Controllers\BaseController;
+use App\Models\{Config, Login, Receipt, Invoice, Client, Expense};
+
 
 class Admin extends BaseController
 {
@@ -18,64 +16,65 @@ class Admin extends BaseController
     {
         parent::__construct($router);
 
-        if (!isset($_SESSION["ID"], $_SESSION["TIPO"]) or $_SESSION["TIPO"] != 2) {
-            $this->router->redirect("pub.login");
+        if (!AdminSession::has()) {
+            $this->router->redirect("auth.logout");
         }
     }
 
-    //ADMINISTRATION PAGES
     public function home(): void
     {
         $stats = new stdClass();
         $stats->profits = 0;
         $stats->total_profit = 0;
-        $stats->LitrosGastos = 0;
+        $stats->total_consumption = 0;
         $stats->expenses = 0;
         $stats->ChartArea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        $stats->chartPie = [0.1, 0.1, month((int)date('m', strtotime("-1 month"))), month()];
+        $stats->ChartPie = [0, 0, month((int)date('m', strtotime("-1 month"))), month()];
 
-        $recibos = (new Receipt())->find()->execute();
-        $facturas = (new Invoice())->find()->execute();
-        $despesas = (new Expenses())->find()->execute();
+        $receipts = (new Receipt())->find()->execute(null, true);
+        $invoices = (new Invoice())->find()->execute(null, true);
+        $expenses = (new Expense())->find()->execute(null, true);
+        $stats->clients = count((new Client())->find("id")->execute(PDO::FETCH_ASSOC, true));
 
-        if ($recibos) {
-            foreach ($recibos as $recibo) {
+
+        if ($receipts) {
+            foreach ($receipts as $receipt) {
                 /* Fill array of profits for each month and sum the profit of current year */
-                if (preg_match("/\/..\/" . date("Y") . "/", $recibo->Date)) {
-                    $str = explode("/", $recibo->Date);
-                    $stats->ChartArea[intval($str[1]) - 1] += $recibo->Valor;
-                    $stats->total_profit += $recibo->Valor;
+                if (preg_match("/-" . date("Y") . "/", $receipt->date_added)) {
+                    $str = explode("-", $receipt->date_added);
+                    $stats->ChartArea[intval($str[1]) - 1] += $receipt->amount;
+                    $stats->total_profit += $receipt->amount;
                 }
             }
 
             $stats->profits = $stats->ChartArea[(int)date('m') - 1];
         }
 
-        if ($facturas) {
-            foreach ($facturas as $factura) {
+        if ($invoices) {
+            foreach ($invoices as $invoice) {
                 /* Consumo do mes passado */
-                if (preg_match("/\/" . date('m', strtotime("-1 month")) . "\/../", $factura->Date)) {
-                    $stats->chartPie[0] += $factura->Consumo;
+                if (preg_match("/-" . date('m', strtotime("-1 month")) . "-" . date('Y') . "/", $invoice->date_added)) {
+                    $stats->ChartPie[0] += $invoice->consumption;
                 }
                 /* Consumo do mes atual */
-                if (preg_match("/\/" . date('m') . "\/" . date("Y") . "/", $factura->Date)) {
-                    $stats->chartPie[1] += $factura->Consumo;
-                    $stats->LitrosGastos += $factura->Consumo;
+                if (preg_match("/-" . date('m') . "-" . date("Y") . "/", $invoice->date_added)) {
+                    $stats->ChartPie[1] += $invoice->consumption;
+                    $stats->total_consumption += $invoice->consumption;
                 }
             }
         }
 
-        if ($despesas) {
-            foreach ($despesas as $despesa) {
+        if ($expenses) {
+            foreach ($expenses as $expense) {
                 /* Expenses of the month */
-                if (preg_match("/\/" . date('m') . "\/" . date("Y") . "/", $despesa->Date)) {
-                    $stats->expenses += $despesa->Valor;
-                    $stats->profits -= $despesa->Valor;
+                if (preg_match("/\/" . date('m') . "\/" . date("Y") . "/", $expense->date_added)) {
+                    $stats->expenses += $expense->amount;
+                    $stats->profits -= $expense->amount;
                 }
 
                 /* Desconto no lucro liquido total anual */
-                if (preg_match("/\/..\/" . date("Y/"), $despesa->Date)) {
-                    $stats->total_profit -= $despesa->Valor;
+                if (preg_match("/\/..\/" . date("Y/"), $expense->date_added)) {
+                    $stats->total_profit -= $expense->amount;
                 }
             }
         }
@@ -88,23 +87,35 @@ class Admin extends BaseController
     public function invoices(): void
     {
         $invoices = (new Invoice())->find()->order()->execute(PDO::FETCH_ASSOC, true);
-        $clients = (new Client())->find()->execute(PDO::FETCH_ASSOC, true);
+        $clients = (new Client())->find("id,name,surname,counter_initial")
+            ->execute(PDO::FETCH_ASSOC, true);
 
-        /* Transform the id into name just for convenience */
-        $names = array_column($clients, "name");
-        $surnames = array_column($clients, "surname");
-        $ids = array_column($clients, "id");
-
-        $client_names = array_merge_recursive($ids, $names, $surnames);
+        $pool = array_column($clients, "id");
 
         for ($i = 0; $i < count($invoices); $i++) {
-            $key = array_search($invoices[$i]['client_id'], $client_names);
-            $invoices[$i]['client'] = $client_names[$key]['name'] . " " . $client_names[$key]['surname'];
+            $key = array_search($invoices[$i]['client_id'], $pool);
+            $invoices[$i]['client'] = $clients[$key];
+            unset($invoices[$i]['client_id']);
+        }
+
+        $readings = (new Invoice())->find("client_id, MAX(counter) counter")
+            ->order("client_id", "ASC")->group_by("client_id")
+            ->execute(PDO::FETCH_ASSOC, true);
+
+        $previous_readings = [];
+        foreach ($readings as $reading) {
+            $previous_readings[$reading['client_id']] = floatval($reading['counter']);
+        }
+
+        foreach ($clients as $client) {
+            $key = array_search($client['id'], array_keys($previous_readings));
+            if ($key === false) $previous_readings[$client['id']] = floatval($client['counter_initial']);
         }
 
         echo $this->view->render("admin::invoices", [
-            "dados" => $invoices,
-            "clientes" => $clients
+            "data" => $invoices,
+            "clients" => $clients,
+            "previous_counter_readings" => json_encode($previous_readings)
         ]);
     }
 
@@ -112,31 +123,54 @@ class Admin extends BaseController
     {
         $receipts = (new Receipt())->find()->order()->execute(PDO::FETCH_ASSOC, true);
 
-        $invoices_id_haystack = implode(",", array_column($receipts, "invoice_id"));
-        $invoices = (new Invoice())->find("id,client_id")->like("date_added", date('/Y'), "end")
-            ->order()->where("status IN(1,4,5) AND id IN({$invoices_id_haystack})")
+        $invoices = (new Invoice())->find()->order()
             ->execute(PDO::FETCH_ASSOC, true);
+        $invoices_id_haystack = array_column($invoices, "id");
 
         $clients_id_haystack = array_column($invoices, "client_id");
-        $clients = (new Client())->find("name,surname")->in($clients_id_haystack, "id")->execute();
+        $clients = (new Client())->find("id,name,surname")
+            ->in($clients_id_haystack)->execute(PDO::FETCH_ASSOC, true);
 
+        /* Populate the clients */
+
+        for ($i = 0; $i < count($receipts); $i++) {
+            $key = array_search($receipts[$i]['invoice_id'], $invoices_id_haystack);
+            $receipts[$i]['invoice'] = $invoices[$key];
+            unset($receipts[$i]['invoice_id']);
+
+            $key = array_search($receipts[$i]['client_id'], $clients_id_haystack);
+            $receipts[$i]['client'] = $clients[$key];
+            unset($receipts[$i]['client_id']);
+
+            $receipts[$i]['paid_via'] = $_SESSION['accounts'][$receipts[$i]['paid_via'] - 1];
+        }
+
+        /* Populate the invoices */
         for ($i = 0; $i < count($invoices); $i++) {
             $key = array_search($invoices[$i]['client_id'], $clients_id_haystack);
-            $receipts[$i]['client'] = $clients[$key]['name'] . " " . $clients[$key]['surname'];
+            $invoices[$i]['client'] = $clients[$key];
+            unset($invoices[$i]['client_id']);
         }
 
         echo $this->view->render("admin::receipts", [
-            "receipts" => $receipts,
+            "data" => $receipts,
             "invoices" => $invoices
         ]);
     }
 
     public function clients(): void
     {
-        $clients = (new Client())->find()->execute();
+        $clients = (new Client())->find()->execute(PDO::FETCH_ASSOC, true);
+        $login = (new Login())->find("id,username,client_id")->execute(PDO::FETCH_ASSOC, true);
+        $clients_id_haystack = array_column($login, "client_id");
+
+        for ($i = 0; $i < count($clients); $i++) {
+            $key = array_search($clients[$i]['id'], $clients_id_haystack);
+            $clients[$i]['credentials'] = $login[$key];
+        }
 
         echo $this->view->render("admin::clients", [
-            "clients" => $clients,
+            "clients" => $clients ?: [],
         ]);
     }
 
@@ -145,62 +179,62 @@ class Admin extends BaseController
         $stats = new stdClass();
         $stats->chartArea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         $stats->chartPie = [1, 1, 1, "N/A", "N/A", "N/A"];
+        $stats->profits = 0;
+        $stats->profitsTotal = 0;
+        $stats->expenses = 0;
 
-        $recibos = (new Receipt())->find()->execute();
-        $despesas = (new Expenses())->find()->order()->execute();
+        $stats->chartPieValues = array_column($_SESSION['accounts'], 'balance');
+        $stats->chartPieLabels = "'". implode("','", array_column($_SESSION['accounts'], 'short_name')) ."'";
 
-        if ($recibos) {
+        $receipts = (new Receipt())->find()->like('date_added', date("-Y"), 'end')->order()
+            ->execute(null, true);
+        $expenses = (new Expense())->find()->like('date_added', date("-Y"), 'end')->order()
+            ->execute(PDO::FETCH_ASSOC, true);
 
-            foreach ($recibos as $recibo) {
-                //Fill the array of profits of each month
-                if (preg_match("/\/..\/" . date("Y") . "/", $recibo->date_added)) {
-                    $str = explode("/", $recibo->date_added);
-                    $stats->chartArea[(int)$str[1] - 1] += $recibo->amount;
+        if ($receipts) {
+            foreach ($receipts as $receipt) {
+                if (preg_match("/..-" . date('m') . "-../", $receipt->date_added)) {
+                    $stats->profits += $receipt->amount;
                 }
+
+                $str = explode("-", $receipt->date_added);
+                $stats->chartArea[(int)$str[1] - 1] += $receipt->amount;
             }
         }
 
-        if ($despesas) {
-            $i = 0;
-            foreach ($despesas as $despesa) {
-
-                /* Desconto do lucro liquido */
-                if (preg_match("/\/" . date('m') . "\/" . date("Y") . "/", $despesa->date_added)) {
-                    $str = explode("/", $despesa->date_added);
-                    $stats->chartArea[(int)$str[1] - 1] -= $despesa->amount;
+        if ($expenses) {
+            for ($i = 0; $i < count($expenses); $i++) {
+                if (preg_match("/..-" . date('m') . "-../", $expenses[$i]['date_added'])) {
+                    $str = explode("-", $expenses[$i]['date_added']);
+                    $stats->chartArea[(int)$str[1] - 1] -= $expenses[$i]['amount'];
+                    $stats->profits -= $expenses[$i]['amount'];
+                    $stats->expenses += $expenses[$i]['amount'];
                 }
 
-                /* Ultimas 3 despesas */
-                if ($i < 3) {
-                    $stats->chartPie[$i] = $despesa->amount;
-                    $stats->chartPie[$i + 3] = $despesa->name;
-                    $i++;
-                }
+                $expenses[$i]['paid_via'] = $_SESSION['accounts'][(int)$expenses[$i]['account_id'] - 1]['name'];
             }
-
-            $stats->mid_profit = array_sum($stats->chartArea) / count($stats->chartArea);
         }
 
         echo $this->view->render("admin::financial", [
-            "dados" => $despesas,
-            "recibos" => $recibos,
-            "stats" => $stats
+            "expenses" => $expenses,
+            "receipts" => $receipts,
+            "stats" => $stats,
+            "payment_methods" => $_SESSION['accounts']
         ]);
     }
 
     public function messages(): void
     {
-        $clients = (new Client())->find()->execute();
+        $clients = (new Client())->find()->execute(null, true);
         echo $this->view->render("admin::messages", [
             "clients" => $clients,
-            "credits" => Messages::get_balance()
+            "credits" => Messages::get_balance() ?? 0
         ]);
     }
 
-    /* Next Update */
     public function colab(): void
     {
-        echo $this->view->render("admin::colab");
+        echo $this->view->render("admin::collab");
     }
 
     /* Next Update */
@@ -209,10 +243,31 @@ class Admin extends BaseController
         echo $this->view->render("admin::consumo");
     }
 
-    /* Next Update Feature */
     public function config(): void
     {
-        echo $this->view->render("admin::conf");
+        $config = (new Config())->find()->execute();
+        $admins = (new \App\Models\Admin())->find()->order()->where("id != '" . AdminSession::get()['id'] . "'")
+            ->execute(PDO::FETCH_ASSOC, true);
+        $credentials = (new Login())->find("id,admin_id,username")
+            ->execute(PDO::FETCH_ASSOC, true);
+
+        $admins_id_haystack = array_column($credentials, "admin_id");
+
+        for ($i = 0; $i < count($admins); $i++) {
+            $key = array_search($admins[$i]['id'], $admins_id_haystack);
+            $admins[$i]['credentials'] = $credentials[$key];
+        }
+
+        $you = AdminSession::get();
+        $you['credentials'] = (new Login())->find("role,username")
+            ->where("admin_id = '" . AdminSession::get()['id'] . "'")->execute(PDO::FETCH_ASSOC);
+
+        echo $this->view->render("admin::config", [
+            "config" => (array)$config,
+            "admins" => $admins,
+            "you" => $you
+        ]);
+
     }
 
 }

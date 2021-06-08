@@ -2,8 +2,7 @@
 
 <!-- Page Heading -->
 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <h1 class="h3 mb-0 text-gray-800">Painel de Controle</h1>
-    <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i class="fas fa-download fa-sm text-white-50"></i> Gerar relatório mensal</a>
+    <h1 class="h3 mb-0 font-weight-bold text-gray-800"><i class="fa fa-chart-area"></i> Painel de Controle</h1>
 </div>
 
 <!-- Content Row -->
@@ -15,8 +14,8 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Lucro Liquido (Este mês)</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->Lucros,2,",",".") ?> MT</div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Lucro Líquido (Este mês)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->profits,2,",",".") ?> MT</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-calendar fa-2x text-gray-300"></i>
@@ -32,11 +31,11 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Lucro Liquido Total</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->LucroTotal,2,",",".") ?> MT</div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Clientes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= $stats->clients ?></div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -49,8 +48,8 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Litros Gastos (Este mês)</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->LitrosGastos,2,",",".") ?> m3</div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Consumo (Este mês)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->total_consumption,2,",",".") ?> m3</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-tint fa-2x text-gray-300"></i>
@@ -67,7 +66,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Despesas (Este mês)</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->Despesas,2,",",".") ?> MT</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($stats->expenses,2,",",".") ?> MT</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-tasks fa-2x text-gray-300"></i>
@@ -112,13 +111,13 @@
                 </div>
                 <div class="mt-3 text-center small">
                     <span>
-                        <?php if($stats->ChartPie[0] > $stats->ChartPie[1]){ ?>
+                        <?php if($stats->ChartPie[0] > $stats->ChartPie[1]): ?>
                             O consumo deste mês é menor <i class="fas fa-arrow-alt-circle-down text-danger"></i>
-                        <?php }elseif($stats->ChartPie[0] < $stats->ChartPie[1]){?>
+                        <?php elseif($stats->ChartPie[0] < $stats->ChartPie[1]):?>
                             O consumo deste mês é maior <i class="fas fa-arrow-alt-circle-up text-success"></i>
-                        <?php }else{?>
+                        <?php else:?>
                             O consumo é igual <i class="fas fa-arrow-alt-circle-right text-success"></i>
-                        <?php } ?>
+                        <?php endif; ?>
                         <br>
                         Em metros cúbicos (m3)
                     </span>
@@ -131,7 +130,8 @@
 <script src="<?= assets('vendor/chart.js/Chart.min.js')?>"></script>
 <script>
     let dataArea = [<?= implode(",",$stats->ChartArea) ?>];
-    let unitArea = "MT";
+    let unitArea = "MZN";
+    let unitPie = " m3"
     let dataPie = [<?= $stats->ChartPie[0].",".$stats->ChartPie[1] ?>];
     let labelspie = ["<?= $stats->ChartPie[2]?>","<?= $stats->ChartPie[3] ?>"];
     let ColorsPie = ['#4e73df', '#1cc88a'];

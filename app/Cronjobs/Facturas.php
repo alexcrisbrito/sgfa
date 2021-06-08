@@ -2,40 +2,45 @@
 
 include "../../vendor/autoload.php";
 
+use App\Models\Config;
 use App\Models\Invoice;
 
-$model = new Invoice();
+$config = (new Config())->find()->execute();
+$invoices = (new Invoice())->find()->execute();
 
-$facturas = $model->find();
-
-if ($facturas) {
-
+if ($invoices) {
     $count = 0;
     $applied = [];
 
-    foreach ($facturas as $factura) {
-        if ($factura->Estado == 1) {
-
+    foreach ($invoices as $invoice) {
+        if ($invoice->status == 1) {
             $today = new DateTime("now");
-            $date = date_create_from_format("d/m/Y", $factura->Date);
+            $date = date_create_from_format("d-m-Y", $invoice->date_added);
             $exp = $date->add(new DateInterval("P1M"));
-            $exp = date_create_from_format("d/m/Y",$exp->format("10/m/Y"));
+            $exp = date_create_from_format("d-m-Y",$exp->format("10/m/Y"));
 
             /* If the day passed, apply the fine */
             if ($today > $exp) {
-                $multa = $model->update(["Estado" => '4',"Multa" => "Multa + ".BUSINESS_MODEL["multa"],"Divida" => "Divida +".BUSINESS_MODEL["multa"]], $factura->ID);
-                if ($multa) {
-                    $applied[] = $factura->ID;
+                $update = (new Invoice())->update(
+                    [
+                        "status" => '4',
+                        "fine" => "fine + $config->fine",
+                        "debt" => "debt + $config->fine"
+                    ]
+                )->where("id = '$invoice->id'")->execute();
+
+                if ($update) {
+                    $applied[] = $invoice->id;
                     $count++;
                 }
-
             }
         }
     }
 
-    print "Terminated, applied on {$count} invoices -> [ ".implode(",",$applied)." ]";
+    print "Terminated, applied on $count invoices (". implode(",", $applied) .")";
     exit;
-}else{
+
+} else {
     print "Terminated, didnt apply";
     exit;
 }
